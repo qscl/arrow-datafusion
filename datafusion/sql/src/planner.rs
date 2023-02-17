@@ -134,7 +134,10 @@ impl<'a, S: ContextProvider> SqlToRel<'a, S> {
                 .iter()
                 .any(|x| x.option == ColumnOption::Null);
             fields.push(Field::new(
-                normalize_ident(column.name, self.options.enable_ident_normalization),
+                normalize_ident(
+                    column.name.into_inner(),
+                    self.options.enable_ident_normalization,
+                ),
                 data_type,
                 allow_null,
             ));
@@ -151,10 +154,16 @@ impl<'a, S: ContextProvider> SqlToRel<'a, S> {
     ) -> Result<LogicalPlan> {
         let apply_name_plan = LogicalPlan::SubqueryAlias(SubqueryAlias::try_new(
             plan,
-            normalize_ident(alias.name, self.options.enable_ident_normalization),
+            normalize_ident(
+                alias.name.into_inner(),
+                self.options.enable_ident_normalization,
+            ),
         )?);
 
-        self.apply_expr_alias(apply_name_plan, alias.columns)
+        self.apply_expr_alias(
+            apply_name_plan,
+            alias.columns.into_iter().map(|c| c.into_inner()).collect(),
+        )
     }
 
     pub(crate) fn apply_expr_alias(
@@ -351,7 +360,10 @@ pub fn object_name_to_table_reference(
 ) -> Result<OwnedTableReference> {
     // use destructure to make it clear no fields on ObjectName are ignored
     let ObjectName(idents) = object_name;
-    idents_to_table_reference(idents, enable_normalization)
+    idents_to_table_reference(
+        idents.into_iter().map(|c| c.into_inner()).collect(),
+        enable_normalization,
+    )
 }
 
 /// Create a [`OwnedTableReference`] after normalizing the specified identifier
@@ -414,7 +426,7 @@ pub fn object_name_to_qualifier(
             format!(
                 r#"{} = '{}'"#,
                 column_name,
-                normalize_ident(ident.clone(), enable_normalization)
+                normalize_ident(ident.get().clone(), enable_normalization)
             )
         })
         .collect::<Vec<_>>()

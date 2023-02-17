@@ -41,7 +41,7 @@ impl<'a, S: ContextProvider> SqlToRel<'a, S> {
             // (e.g. "foo.bar") for function names yet
             function.name.to_string()
         } else {
-            normalize_ident(function.name.0[0].clone())
+            normalize_ident(function.name.0[0].get().clone())
         };
 
         // next, scalar built-in

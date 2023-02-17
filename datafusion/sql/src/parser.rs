@@ -463,7 +463,7 @@ impl<'a> DFParser<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use sqlparser::ast::{DataType, Ident};
+    use sqlparser::ast::{DataType, Ident, Located};
     use CompressionTypeVariant::UNCOMPRESSED;
 
     fn expect_parse_ok(sql: &str, expected: Statement) -> Result<(), ParserError> {
@@ -497,10 +497,13 @@ mod tests {
 
     fn make_column_def(name: impl Into<String>, data_type: DataType) -> ColumnDef {
         ColumnDef {
-            name: Ident {
-                value: name.into(),
-                quote_style: None,
-            },
+            name: Located::new(
+                Ident {
+                    value: name.into(),
+                    quote_style: None,
+                },
+                None,
+            ),
             data_type,
             collation: None,
             options: vec![],

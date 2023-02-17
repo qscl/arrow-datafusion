@@ -362,7 +362,8 @@ impl<'a, S: ContextProvider> SqlToRel<'a, S> {
                     from_schema,
                     None,
                 )?;
-                let expr = Alias(Box::new(select_expr), normalize_ident(alias));
+                let expr =
+                    Alias(Box::new(select_expr), normalize_ident(alias.get().clone()));
                 Ok(vec![normalize_col(expr, plan)?])
             }
             SelectItem::Wildcard(options) => {

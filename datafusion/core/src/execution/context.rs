@@ -1766,7 +1766,10 @@ impl SessionState {
                 let _ = s.as_ref().visit(&mut visitor);
             }
             DFStatement::CreateExternalTable(table) => {
-                relations.insert(ObjectName(vec![Ident::from(table.name.as_str())]));
+                relations.insert(ObjectName(vec![Located::new(
+                    Ident::from(table.name.as_str()),
+                    None,
+                )]));
             }
             DFStatement::DescribeTableStmt(table) => {
                 relations

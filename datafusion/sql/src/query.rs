@@ -65,7 +65,7 @@ impl<'a, S: ContextProvider> SqlToRel<'a, S> {
 
             for cte in with.cte_tables {
                 // A `WITH` block can't use the same name more than once
-                let cte_name = normalize_ident(cte.alias.name.clone());
+                let cte_name = normalize_ident(cte.alias.name.get().clone());
                 if planner_context.ctes.contains_key(&cte_name) {
                     return Err(DataFusionError::SQL(ParserError(format!(
                         "WITH query name {cte_name:?} specified more than once"

@@ -143,11 +143,11 @@ impl<'a, S: ContextProvider> SqlToRel<'a, S> {
                 last_field,
                 fractional_seconds_precision,
             ),
-            SQLExpr::Identifier(id) => self.sql_identifier_to_expr(id),
+            SQLExpr::Identifier(id) => self.sql_identifier_to_expr(id.into_inner()),
 
             SQLExpr::MapAccess { column, keys } => {
                 if let SQLExpr::Identifier(id) = *column {
-                    plan_indexed(col(normalize_ident(id)), keys)
+                    plan_indexed(col(normalize_ident(id.into_inner())), keys)
                 } else {
                     Err(DataFusionError::NotImplemented(format!(
                         "map access requires an identifier, found column {column} instead"
@@ -160,7 +160,7 @@ impl<'a, S: ContextProvider> SqlToRel<'a, S> {
                 plan_indexed(expr, indexes)
             }
 
-            SQLExpr::CompoundIdentifier(ids) => self.sql_compound_identifier_to_expr(ids, schema),
+            SQLExpr::CompoundIdentifier(ids) => self.sql_compound_identifier_to_expr(ids.into_iter().map(|i| i.into_inner()).collect(), schema),
 
             SQLExpr::Case {
                 operand,

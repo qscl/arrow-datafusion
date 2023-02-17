@@ -44,12 +44,13 @@ use sqlparser::ast::{
     SetExpr, ShowCreateObject, ShowStatementFilter, Statement, TableFactor,
     TableWithJoins, UnaryOperator, Value,
 };
+use sqlparser::location::Located;
 use sqlparser::parser::ParserError::ParserError;
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::sync::Arc;
 
-fn ident_to_string(ident: &Ident) -> String {
-    normalize_ident(ident.to_owned())
+fn ident_to_string<T: AsRef<Ident>>(ident: &T) -> String {
+    normalize_ident(ident.as_ref().to_owned())
 }
 
 fn object_name_to_string(object_name: &ObjectName) -> String {
@@ -172,7 +173,10 @@ impl<'a, S: ContextProvider> SqlToRel<'a, S> {
                 ..
             } if with_options.is_empty() => {
                 let mut plan = self.query_to_plan(*query, &mut PlannerContext::new())?;
-                plan = self.apply_expr_alias(plan, columns)?;
+                plan = self.apply_expr_alias(
+                    plan,
+                    columns.into_iter().map(|i| i.into_inner()).collect(),
+                )?;
 
                 Ok(LogicalPlan::CreateView(CreateView {
                     name: self.object_name_to_table_reference(name)?,
@@ -276,7 +280,12 @@ impl<'a, S: ContextProvider> SqlToRel<'a, S> {
                 full,
                 db_name,
                 filter,
-            } => self.show_tables_to_plan(extended, full, db_name, filter),
+            } => self.show_tables_to_plan(
+                extended,
+                full,
+                db_name.map(|i| i.get().clone()),
+                filter,
+            ),
 
             Statement::ShowColumns {
                 extended,
@@ -334,7 +343,11 @@ impl<'a, S: ContextProvider> SqlToRel<'a, S> {
                     ))?;
                 }
                 let _ = into; // optional keyword doesn't change behavior
-                self.insert_to_plan(table_name, columns, source)
+                self.insert_to_plan(
+                    table_name,
+                    columns.into_iter().map(|i| i.into_inner()).collect(),
+                    source,
+                )
             }
 
             Statement::Update {
@@ -512,7 +525,7 @@ impl<'a, S: ContextProvider> SqlToRel<'a, S> {
         }
     }
 
-    fn show_variable_to_plan(&self, variable: &[Ident]) -> Result<LogicalPlan> {
+    fn show_variable_to_plan(&self, variable: &[Located<Ident>]) -> Result<LogicalPlan> {
         let variable = object_name_to_string(&ObjectName(variable.to_vec()));
 
         if !self.has_table("information_schema", "df_settings") {
@@ -691,7 +704,10 @@ impl<'a, S: ContextProvider> SqlToRel<'a, S> {
         let values = table_schema.fields().iter().map(|f| {
             (
                 f.name().clone(),
-                ast::Expr::Identifier(ast::Ident::from(f.name().as_str())),
+                ast::Expr::Identifier(ast::Located::new(
+                    ast::Ident::from(f.name().as_str()),
+                    None,
+                )),
             )
         });
 
